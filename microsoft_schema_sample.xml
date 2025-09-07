@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pnp:Provisioning xmlns:pnp="http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema" 
+                  Author="Microsoft Sample" 
+                  Generator="PnP Provisioning Engine" 
+                  Version="1.0" 
+                  Description="Complete Microsoft sample showing Fields, Content Types, and Lists structure" 
+                  DisplayName="Microsoft PnP Schema Sample">
+  <pnp:Templates ID="MICROSOFT-TEMPLATES">
+    <pnp:ProvisioningTemplate ID="SAMPLE-TEMPLATE" 
+                              Version="1" 
+                              BaseSiteTemplate="STS#3" 
+                              Scope="RootSite"
+                              DisplayName="Sample Template"
+                              Description="Microsoft official sample template">
+      
+      <!-- ================================================================ -->
+      <!-- SITE FIELDS SECTION - Define reusable columns -->
+      <!-- ================================================================ -->
+      <pnp:SiteFields>
+        
+        <!-- Text Field Example -->
+        <pnp:Field ID="{A4C5B5C1-2F3E-4D5A-8B9C-1E2F3A4B5C6D}" 
+                   Type="Text" 
+                   Name="ProjectCode" 
+                   StaticName="ProjectCode" 
+                   DisplayName="Project Code" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   MaxLength="50"
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE">
+          <pnp:DefaultValue>PROJ-</pnp:DefaultValue>
+        </pnp:Field>
+
+        <!-- Choice Field Example -->
+        <pnp:Field ID="{B5D6C7E8-3F4A-5E6B-9C0D-2E3F4A5B6C7D}" 
+                   Type="Choice" 
+                   Name="ProjectStatus" 
+                   StaticName="ProjectStatus" 
+                   DisplayName="Project Status" 
+                   Group="Corporate Columns" 
+                   Required="TRUE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   FillInChoice="FALSE"
+                   Format="Dropdown">
+          <CHOICES>
+            <CHOICE>Planning</CHOICE>
+            <CHOICE>In Progress</CHOICE>
+            <CHOICE>On Hold</CHOICE>
+            <CHOICE>Completed</CHOICE>
+            <CHOICE>Cancelled</CHOICE>
+          </CHOICES>
+          <pnp:DefaultValue>Planning</pnp:DefaultValue>
+        </pnp:Field>
+
+        <!-- Multi-Choice Field Example -->
+        <pnp:Field ID="{C6E7D8F9-4A5B-6C7D-0E1F-3F4A5B6C7D8E}" 
+                   Type="MultiChoice" 
+                   Name="ProjectCategories" 
+                   StaticName="ProjectCategories" 
+                   DisplayName="Project Categories" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   FillInChoice="TRUE">
+          <CHOICES>
+            <CHOICE>IT Infrastructure</CHOICE>
+            <CHOICE>Software Development</CHOICE>
+            <CHOICE>Marketing</CHOICE>
+            <CHOICE>HR</CHOICE>
+            <CHOICE>Finance</CHOICE>
+            <CHOICE>Operations</CHOICE>
+          </CHOICES>
+        </pnp:Field>
+
+        <!-- DateTime Field Example -->
+        <pnp:Field ID="{D7F8E9A0-5B6C-7D8E-1F20-4A5B6C7D8E9F}" 
+                   Type="DateTime" 
+                   Name="ProjectDeadline" 
+                   StaticName="ProjectDeadline" 
+                   DisplayName="Project Deadline" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   Format="DateOnly">
+        </pnp:Field>
+
+        <!-- Number Field Example -->
+        <pnp:Field ID="{E8A9B0C1-6C7D-8E9F-2031-5B6C7D8E9F0A}" 
+                   Type="Number" 
+                   Name="ProjectBudget" 
+                   StaticName="ProjectBudget" 
+                   DisplayName="Project Budget" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   Min="0"
+                   Max="10000000"
+                   Decimals="2">
+        </pnp:Field>
+
+        <!-- User Field Example -->
+        <pnp:Field ID="{F9B0C1D2-7D8E-9F0A-3142-6C7D8E9F0A1B}" 
+                   Type="User" 
+                   Name="ProjectManager" 
+                   StaticName="ProjectManager" 
+                   DisplayName="Project Manager" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   UserSelectionMode="PeopleOnly"
+                   UserSelectionScope="0">
+        </pnp:Field>
+
+        <!-- Lookup Field Example -->
+        <pnp:Field ID="{A0C1D2E3-8E9F-0A1B-4253-7D8E9F0A1B2C}" 
+                   Type="Lookup" 
+                   Name="ProjectDepartment" 
+                   StaticName="ProjectDepartment" 
+                   DisplayName="Department" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   List="Departments"
+                   ShowField="Title">
+        </pnp:Field>
+
+        <!-- Note/Rich Text Field Example -->
+        <pnp:Field ID="{B1D2E3F4-9F0A-1B2C-5364-8E9F0A1B2C3D}" 
+                   Type="Note" 
+                   Name="ProjectDescription" 
+                   StaticName="ProjectDescription" 
+                   DisplayName="Project Description" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   RichText="TRUE"
+                   RichTextMode="FullHtml"
+                   NumLines="10">
+        </pnp:Field>
+
+        <!-- Boolean Field Example -->
+        <pnp:Field ID="{C2E3F4A5-0A1B-2C3D-6475-9F0A1B2C3D4E}" 
+                   Type="Boolean" 
+                   Name="IsConfidential" 
+                   StaticName="IsConfidential" 
+                   DisplayName="Confidential Project" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE">
+          <pnp:DefaultValue>0</pnp:DefaultValue>
+        </pnp:Field>
+
+        <!-- Currency Field Example -->
+        <pnp:Field ID="{D3F4A5B6-1B2C-3D4E-7586-0A1B2C3D4E5F}" 
+                   Type="Currency" 
+                   Name="ActualCost" 
+                   StaticName="ActualCost" 
+                   DisplayName="Actual Cost" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE"
+                   LCID="1033"
+                   Decimals="2">
+        </pnp:Field>
+
+      </pnp:SiteFields>
+
+      <!-- ================================================================ -->
+      <!-- CONTENT TYPES SECTION - Define reusable content structures -->
+      <!-- ================================================================ -->
+      <pnp:ContentTypes>
+        
+        <!-- Project Document Content Type -->
+        <pnp:ContentType ID="0x0101007A4C58D4F0564226B8FF62C6BA26F4A2" 
+                         Name="Project Document" 
+                         Description="Content type for project-related documents" 
+                         Group="Corporate Content Types"
+                         Hidden="false"
+                         Sealed="false"
+                         ReadOnly="false">
+          <pnp:FieldRefs>
+            <!-- Standard Title field (always include) -->
+            <pnp:FieldRef ID="fa564e0f-0c70-4ab9-b863-0177e6ddd247" Name="Title" Required="true"/>
+            <!-- Custom fields -->
+            <pnp:FieldRef ID="{A4C5B5C1-2F3E-4D5A-8B9C-1E2F3A4B5C6D}" Name="ProjectCode" Required="true"/>
+            <pnp:FieldRef ID="{B5D6C7E8-3F4A-5E6B-9C0D-2E3F4A5B6C7D}" Name="ProjectStatus" Required="true"/>
+            <pnp:FieldRef ID="{F9B0C1D2-7D8E-9F0A-3142-6C7D8E9F0A1B}" Name="ProjectManager" Required="false"/>
+            <pnp:FieldRef ID="{C2E3F4A5-0A1B-2C3D-6475-9F0A1B2C3D4E}" Name="IsConfidential" Required="false"/>
+          </pnp:FieldRefs>
+        </pnp:ContentType>
+
+        <!-- Project Item Content Type (for Lists) -->
+        <pnp:ContentType ID="0x01007B5D69E5F1574E27A9FF73C7BD38F4B3" 
+                         Name="Project Item" 
+                         Description="Content type for project list items" 
+                         Group="Corporate Content Types"
+                         Hidden="false"
+                         Sealed="false"
+                         ReadOnly="false">
+          <pnp:FieldRefs>
+            <!-- Standard Title field -->
+            <pnp:FieldRef ID="fa564e0f-0c70-4ab9-b863-0177e6ddd247" Name="Title" Required="true"/>
+            <!-- Custom fields -->
+            <pnp:FieldRef ID="{A4C5B5C1-2F3E-4D5A-8B9C-1E2F3A4B5C6D}" Name="ProjectCode" Required="true"/>
+            <pnp:FieldRef ID="{B5D6C7E8-3F4A-5E6B-9C0D-2E3F4A5B6C7D}" Name="ProjectStatus" Required="true"/>
+            <pnp:FieldRef ID="{C6E7D8F9-4A5B-6C7D-0E1F-3F4A5B6C7D8E}" Name="ProjectCategories" Required="false"/>
+            <pnp:FieldRef ID="{D7F8E9A0-5B6C-7D8E-1F20-4A5B6C7D8E9F}" Name="ProjectDeadline" Required="false"/>
+            <pnp:FieldRef ID="{E8A9B0C1-6C7D-8E9F-2031-5B6C7D8E9F0A}" Name="ProjectBudget" Required="false"/>
+            <pnp:FieldRef ID="{F9B0C1D2-7D8E-9F0A-3142-6C7D8E9F0A1B}" Name="ProjectManager" Required="true"/>
+            <pnp:FieldRef ID="{B1D2E3F4-9F0A-1B2C-5364-8E9F0A1B2C3D}" Name="ProjectDescription" Required="false"/>
+            <pnp:FieldRef ID="{D3F4A5B6-1B2C-3D4E-7586-0A1B2C3D4E5F}" Name="ActualCost" Required="false"/>
+          </pnp:FieldRefs>
+        </pnp:ContentType>
+
+        <!-- Department Content Type -->
+        <pnp:ContentType ID="0x01007C6E7AF6F2685D38BAFF84D8CF49A5C4" 
+                         Name="Department" 
+                         Description="Content type for department information" 
+                         Group="Corporate Content Types"
+                         Hidden="false"
+                         Sealed="false"
+                         ReadOnly="false">
+          <pnp:FieldRefs>
+            <pnp:FieldRef ID="fa564e0f-0c70-4ab9-b863-0177e6ddd247" Name="Title" Required="true"/>
+            <!-- Add other department-specific fields here -->
+          </pnp:FieldRefs>
+        </pnp:ContentType>
+
+      </pnp:ContentTypes>
+
+      <!-- ================================================================ -->
+      <!-- LISTS SECTION - Define lists and document libraries -->
+      <!-- ================================================================ -->
+      <pnp:Lists>
+        
+        <!-- Document Library Example -->
+        <pnp:ListInstance Title="Project Documents" 
+                          Description="Library for storing project-related documents" 
+                          TemplateType="101" 
+                          Url="ProjectDocuments" 
+                          EnableVersioning="true"
+                          EnableMinorVersions="true"
+                          EnableModeration="false"
+                          MinorVersionLimit="10"
+                          MaxVersionLimit="50"
+                          DraftVersionVisibility="1"
+                          ContentTypesEnabled="true"
+                          OnQuickLaunch="true"
+                          EnableAttachments="false"
+                          EnableFolderCreation="true"
+                          NoCrawl="false"
+                          Hidden="false"
+                          RemoveExistingContentTypes="false">
+          
+          <!-- Content Type Bindings -->
+          <pnp:ContentTypeBindings>
+            <pnp:ContentTypeBinding ContentTypeID="0x0101" Default="false" Remove="false"/>
+            <pnp:ContentTypeBinding ContentTypeID="0x0101007A4C58D4F0564226B8FF62C6BA26F4A2" Default="true" Remove="false"/>
+          </pnp:ContentTypeBindings>
+
+          <!-- Custom Fields for this list (in addition to content type fields) -->
+          <pnp:Fields>
+            <pnp:Field ID="{E4F5A6B7-2C3D-4E5F-8697-1B2C3D4E5F6A}" 
+                       Type="Text" 
+                       Name="DocumentVersion" 
+                       StaticName="DocumentVersion" 
+                       DisplayName="Document Version" 
+                       Group="List Columns" 
+                       Required="FALSE"/>
+          </pnp:Fields>
+
+          <!-- Field References (for list-specific display) -->
+          <pnp:FieldRefs>
+            <pnp:FieldRef ID="{E4F5A6B7-2C3D-4E5F-8697-1B2C3D4E5F6A}" Name="DocumentVersion" DisplayName="Doc Version"/>
+          </pnp:FieldRefs>
+
+          <!-- Custom Views -->
+          <pnp:Views RemoveExistingViews="false">
+            <View Name="Active Projects" DefaultView="FALSE" MobileView="FALSE" MobileDefaultView="FALSE" Type="HTML" DisplayName="Active Projects" Url="ActiveProjects.aspx" Level="1" BaseViewID="1" ContentTypeID="0x" ImageUrl="/_layouts/15/images/dlicon.png">
+              <Query>
+                <Where>
+                  <Eq>
+                    <FieldRef Name="ProjectStatus"/>
+                    <Value Type="Choice">In Progress</Value>
+                  </Eq>
+                </Where>
+                <OrderBy>
+                  <FieldRef Name="ProjectDeadline" Ascending="TRUE"/>
+                </OrderBy>
+              </Query>
+              <ViewFields>
+                <FieldRef Name="DocIcon"/>
+                <FieldRef Name="LinkFilename"/>
+                <FieldRef Name="ProjectCode"/>
+                <FieldRef Name="ProjectStatus"/>
+                <FieldRef Name="ProjectManager"/>
+                <FieldRef Name="ProjectDeadline"/>
+                <FieldRef Name="Modified"/>
+                <FieldRef Name="Editor"/>
+              </ViewFields>
+              <RowLimit Paged="TRUE">30</RowLimit>
+              <JSLink>clienttemplates.js</JSLink>
+              <XslLink Default="TRUE">main.xsl</XslLink>
+              <Toolbar Type="Standard"/>
+            </View>
+          </pnp:Views>
+
+          <!-- Folders structure -->
+          <pnp:Folders>
+            <pnp:Folder Name="Templates">
+              <pnp:Folder Name="Word Templates"/>
+              <pnp:Folder Name="Excel Templates"/>
+            </pnp:Folder>
+            <pnp:Folder Name="Completed Projects"/>
+            <pnp:Folder Name="Draft Documents"/>
+          </pnp:Folders>
+
+        </pnp:ListInstance>
+
+        <!-- Custom List Example -->
+        <pnp:ListInstance Title="Projects" 
+                          Description="Master list of all company projects" 
+                          TemplateType="100" 
+                          Url="Lists/Projects" 
+                          ContentTypesEnabled="true"
+                          OnQuickLaunch="true"
+                          EnableAttachments="true"
+                          EnableFolderCreation="false"
+                          Hidden="false"
+                          RemoveExistingContentTypes="true">
+          
+          <!-- Content Type Bindings -->
+          <pnp:ContentTypeBindings>
+            <pnp:ContentTypeBinding ContentTypeID="0x01" Default="false" Remove="true"/>
+            <pnp:ContentTypeBinding ContentTypeID="0x01007B5D69E5F1574E27A9FF73C7BD38F4B3" Default="true" Remove="false"/>
+          </pnp:ContentTypeBindings>
+
+          <!-- Custom Views -->
+          <pnp:Views RemoveExistingViews="false">
+            <View Name="By Status" DefaultView="FALSE" MobileView="FALSE" MobileDefaultView="FALSE" Type="HTML" DisplayName="Projects by Status" Url="ByStatus.aspx" Level="1" BaseViewID="1" ContentTypeID="0x">
+              <Query>
+                <GroupBy Collapse="TRUE" GroupLimit="100">
+                  <FieldRef Name="ProjectStatus"/>
+                </GroupBy>
+                <OrderBy>
+                  <FieldRef Name="ProjectDeadline" Ascending="TRUE"/>
+                </OrderBy>
+              </Query>
+              <ViewFields>
+                <FieldRef Name="LinkTitle"/>
+                <FieldRef Name="ProjectCode"/>
+                <FieldRef Name="ProjectStatus"/>
+                <FieldRef Name="ProjectManager"/>
+                <FieldRef Name="ProjectDeadline"/>
+                <FieldRef Name="ProjectBudget"/>
+                <FieldRef Name="ActualCost"/>
+              </ViewFields>
+              <RowLimit Paged="TRUE">30</RowLimit>
+            </View>
+          </pnp:Views>
+
+        </pnp:ListInstance>
+
+        <!-- Lookup List Example (Referenced by other lists) -->
+        <pnp:ListInstance Title="Departments" 
+                          Description="List of company departments" 
+                          TemplateType="100" 
+                          Url="Lists/Departments" 
+                          ContentTypesEnabled="true"
+                          OnQuickLaunch="false"
+                          EnableAttachments="false"
+                          Hidden="false">
+          
+          <pnp:ContentTypeBindings>
+            <pnp:ContentTypeBinding ContentTypeID="0x01" Default="false" Remove="true"/>
+            <pnp:ContentTypeBinding ContentTypeID="0x01007C6E7AF6F2685D38BAFF84D8CF49A5C4" Default="true" Remove="false"/>
+          </pnp:ContentTypeBindings>
+
+          <!-- Pre-populate with data -->
+          <pnp:DataRows>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">Information Technology</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">Human Resources</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">Finance</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">Marketing</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">Operations</pnp:DataValue>
+            </pnp:DataRow>
+          </pnp:DataRows>
+
+        </pnp:ListInstance>
+
+        <!-- Calendar List Example -->
+        <pnp:ListInstance Title="Project Milestones" 
+                          Description="Calendar for tracking project milestones and deadlines" 
+                          TemplateType="106" 
+                          Url="Lists/ProjectMilestones" 
+                          OnQuickLaunch="true"
+                          EnableAttachments="false">
+          
+          <!-- Additional calendar-specific fields -->
+          <pnp:Fields>
+            <pnp:Field ID="{F5A6B7C8-3D4E-5F6A-9708-2C3D4E5F6A7B}" 
+                       Type="Choice" 
+                       Name="MilestoneType" 
+                       StaticName="MilestoneType" 
+                       DisplayName="Milestone Type" 
+                       Group="Calendar Columns" 
+                       Required="FALSE">
+              <CHOICES>
+                <CHOICE>Kickoff</CHOICE>
+                <CHOICE>Phase Complete</CHOICE>
+                <CHOICE>Deadline</CHOICE>
+                <CHOICE>Review</CHOICE>
+                <CHOICE>Go-Live</CHOICE>
+              </CHOICES>
+            </pnp:Field>
+          </pnp:Fields>
+
+        </pnp:ListInstance>
+
+        <!-- Picture Library Example -->
+        <pnp:ListInstance Title="Project Photos" 
+                          Description="Picture library for project-related images" 
+                          TemplateType="109" 
+                          Url="ProjectPhotos" 
+                          OnQuickLaunch="true"
+                          EnableFolderCreation="true">
+          
+          <!-- Picture-specific fields -->
+          <pnp:Fields>
+            <pnp:Field ID="{A6B7C8D9-4E5F-6A7B-0819-3D4E5F6A7B8C}" 
+                       Type="Text" 
+                       Name="PhotoCategory" 
+                       StaticName="PhotoCategory" 
+                       DisplayName="Photo Category" 
+                       Group="Picture Columns" 
+                       Required="FALSE"/>
+          </pnp:Fields>
+
+        </pnp:ListInstance>
+
+      </pnp:Lists>
+
+    </pnp:ProvisioningTemplate>
+  </pnp:Templates>
+</pnp:Provisioning>

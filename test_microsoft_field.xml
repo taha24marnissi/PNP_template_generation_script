@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pnp:Provisioning xmlns:pnp="http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema" 
+                  Author="Microsoft Sample Test" 
+                  Generator="PnP Provisioning Engine" 
+                  Version="1.0" 
+                  Description="Test template using exact Microsoft field pattern" 
+                  DisplayName="Microsoft Field Pattern Test">
+  <pnp:Templates ID="TEST-TEMPLATES">
+    <pnp:ProvisioningTemplate ID="FIELD-TEST-TEMPLATE" 
+                              Version="1" 
+                              BaseSiteTemplate="GROUP#0" 
+                              Scope="RootSite"
+                              DisplayName="Field Pattern Test"
+                              Description="Testing exact Microsoft field pattern">
+      
+      <pnp:WebSettings RequestAccessEmail="" 
+                       NoCrawl="false" 
+                       WelcomePage="SitePages/Home.aspx" 
+                       Title="Field Pattern Test" 
+                       Description="Testing exact Microsoft field pattern" 
+                       AlternateCSS="" 
+                       CommentsOnSitePagesDisabled="false" 
+                       QuickLaunchEnabled="true" 
+                       MembersCanShare="true" 
+                       ExcludeFromOfflineClient="false" 
+                       DisableFlows="false" 
+                       DisableAppViews="false"/>
+      
+      <pnp:SiteFields>
+        <!-- Exact copy of Microsoft's Text field pattern -->
+        <pnp:Field ID="{A4C5B5C1-2F3E-4D5A-8B9C-1E2F3A4B5C6D}" 
+                   Type="Text" 
+                   Name="ProjectCode" 
+                   StaticName="ProjectCode" 
+                   DisplayName="Project Code" 
+                   Group="Corporate Columns" 
+                   Required="FALSE" 
+                   MaxLength="50"
+                   ShowInDisplayForm="TRUE" 
+                   ShowInEditForm="TRUE" 
+                   ShowInNewForm="TRUE">
+          <pnp:DefaultValue>PROJ-</pnp:DefaultValue>
+        </pnp:Field>
+      </pnp:SiteFields>
+      
+    </pnp:ProvisioningTemplate>
+  </pnp:Templates>
+</pnp:Provisioning>
