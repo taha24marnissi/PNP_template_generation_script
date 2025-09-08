@@ -1,11 +1,11 @@
 # Requires: PowerShell 7+, PnP.PowerShell module
 
 param(
-    [string]$TemplateFilePath = "C:\Users\tmarnissi\Desktop\sp pnp gen\test_microsoft_field.xml"
+    [string]$TemplateFilePath = "C:\Users\tmarnissi\Desktop\sp pnp gen\generated-templates\enhanced_mock_20250908_114305.xml"
 )
 
-$SiteUrl = "https://3rd5pw.sharepoint.com/sites/mspatterntest001"
-$SiteTitle = "mspatterntest001"
+$SiteUrl = "https://3rd5pw.sharepoint.com/sites/mspatterntest003"
+$SiteTitle = "mspatterntest003"
 $SiteAlias = ""            # Optional. If empty, will be derived from $SiteUrl
 $OwnerUpn = "taha@3rd5pw.onmicrosoft.com"
 

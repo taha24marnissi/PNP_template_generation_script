@@ -202,15 +202,6 @@ Return ONLY a valid JSON object with this exact structure:
             "required": false
         }}
     ],
-    "content_types": [
-        {{
-            "name": "Content Type Name",
-            "description": "Content type description",
-            "group": "Custom Content Types",
-            "parent": "Document", // or "Item" for list items
-            "fields": ["FieldName1", "FieldName2"] // reference site field names
-        }}
-    ],
     "lists": [
         {{
             "title": "Exact List/Library Title",
@@ -218,10 +209,20 @@ Return ONLY a valid JSON object with this exact structure:
             "url": "Lists/ListName or LibraryName",
             "description": "Purpose of this list/library",
             "enable_versioning": true, // only for document libraries (101)
-            "enable_content_types": true,
-            "content_types": ["Content Type Name"], // reference content type names
             "on_quick_launch": true,
-            "fields": [] // leave empty - fields come through content types
+            "fields": [], // leave empty - all site fields will be auto-added to lists
+            "views": [
+                {{
+                    "name": "View Name",
+                    "display_name": "Display Name for View",
+                    "type": "HTML", // HTML, GANTT, CALENDAR, etc.
+                    "default": false, // true for default view
+                    "fields": ["Field1", "Field2", "Field3"], // field internal names to display
+                    "query": "<OrderBy><FieldRef Name='Title' /></OrderBy>", // optional CAML query for sorting/filtering
+                    "row_limit": 30, // optional row limit
+                    "paged": true // optional paging
+                }}
+            ]
         }}
     ],
     "navigation": [
@@ -241,19 +242,35 @@ Return ONLY a valid JSON object with this exact structure:
 }}
 
 SharePoint Best Practice Rules:
-1. Design SiteFields → ContentTypes → Lists architecture
-2. Create reusable site fields that multiple content types can use
-3. Group related fields into logical content types
-4. Associate content types with appropriate lists/libraries
-5. Extract EXACT names from quotes or "called" phrases - don't modify them
-6. Be specific with site titles - avoid generic names like "Team Site"
-7. For document libraries, always use template_type 101
-8. Choose appropriate template types: 106=Events, 107=Tasks, 105=Contacts, 104=Announcements
-9. Include relevant site columns based on the context
-10. Add meaningful navigation items
-11. Return ONLY the JSON, no explanation text
-12. Use proper SharePoint naming conventions
-13. Make URLs SharePoint-friendly (no spaces, proper casing)
+1. Design site_fields that are automatically added to all lists
+2. Create field definitions with appropriate types (Text, Choice, DateTime, Boolean, Number, Currency, User, Note)
+3. Fields are automatically distributed to all lists - no need for content types
+4. Extract EXACT names from quotes or "called" phrases - don't modify them
+5. Be specific with site titles - avoid generic names like "Team Site"
+6. For document libraries, always use template_type 101
+7. Choose appropriate template types: 106=Events, 107=Tasks, 105=Contacts, 104=Announcements
+8. Include relevant site columns based on the context
+9. Add meaningful navigation items
+10. Return ONLY the JSON, no explanation text
+11. Use proper SharePoint naming conventions
+12. Make URLs SharePoint-friendly (no spaces, proper casing)
+13. Create useful views for each list/library:
+    - Default "All Items" view with key fields
+    - Filtered views for specific data subsets (e.g., "Active Projects", "Completed Tasks")
+    - Calendar views for date-based lists
+    - Sorted views for priority/status fields
+    - Use CAML queries for complex filtering and sorting
+14. View field selection guidelines:
+    - Include Title and key identifier fields
+    - Add relevant date fields (Created, Modified, Due Date)
+    - Include status/priority fields for quick scanning
+    - Limit to 6-8 fields for optimal display
+    - **IMPORTANT: Use exact field names from site_fields array (e.g., if site field is "DueDate", use "DueDate" in view fields)**
+15. Use appropriate view types: HTML for most lists, CALENDAR for date-based content
+16. CAML Query Guidelines:
+    - Use exact field internal names from site_fields in queries
+    - Match field types correctly (Choice, DateTime, Text, etc.)
+    - Use proper CAML syntax for filtering and sorting
 
 Content Type Design Guidelines:
 - For documents: inherit from "Document" (0x0101)
@@ -399,15 +416,7 @@ def add_field_ids(structure: Dict[str, Any]) -> None:
     # Update the structure with the consolidated field list
     structure["site_fields"] = all_fields
     
-    # Add IDs to content types following SharePoint conventions
-    for ct in structure.get("content_types", []):
-        if "id" not in ct:
-            # Generate proper SharePoint content type ID
-            # 0x0101 = Document base, 0x01 = Item base
-            base_id = "0x0101" if ct.get("parent") == "Document" else "0x01"
-            # Add two more hex digits to ensure uniqueness
-            unique_suffix = str(uuid.uuid4()).replace('-', '').upper()[:30]
-            ct["id"] = base_id + "00" + unique_suffix
+    # No content type processing needed - using Microsoft's list-specific field pattern
 
 def fallback_generate_structure(description: str) -> Dict[str, Any]:
     """
@@ -467,7 +476,6 @@ def fallback_generate_structure(description: str) -> Dict[str, Any]:
                 "template_type": 101,
                 "url": library_name.replace(' ', ''),
                 "enable_versioning": True,
-                "enable_content_types": True,
                 "fields": ["DocumentStatus"]
             }
         ],
@@ -475,12 +483,219 @@ def fallback_generate_structure(description: str) -> Dict[str, Any]:
             {"title": "Home", "url": "{site}"},
             {"title": "Documents", "url": "{site}/Shared Documents/Forms/AllItems.aspx"}
         ],
-        "content_types": [],
         "features": []
     }
     
     json_content = json.dumps(structure, indent=2)
     return structure, json_content
+
+def generate_list_views(list_def: Dict[str, Any], site_fields: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Generate intelligent views for a list based on its type and available fields.
+    Following Microsoft's view pattern from the schema sample.
+    """
+    views = []
+    list_title = list_def.get("title", "Items")
+    list_type = list_def.get("template_type", 100)
+    
+    # Get fields that will be in this list
+    fields_to_add = list_def.get("fields", [])
+    if not fields_to_add and site_fields:
+        fields_to_add = [f["name"] for f in site_fields]
+    
+    # Create field name mapping for easier lookup
+    field_map = {f["name"]: f for f in site_fields}
+    
+    # Base fields that are always available
+    base_fields = []
+    if list_type == 101:  # Document Library
+        base_fields = ["DocIcon", "LinkFilename", "Modified", "Editor"]
+    else:  # Lists
+        base_fields = ["LinkTitle", "Modified", "Editor"]
+    
+    # Create default view with all relevant fields
+    default_view_fields = base_fields.copy()
+    
+    # Add custom fields that make sense for default view
+    for field_name in fields_to_add[:6]:  # Limit to first 6 custom fields for default view
+        if field_name in field_map:
+            field_def = field_map[field_name]
+            # Skip Note/multiline fields in default view (too wide)
+            if field_def.get("type") != "Note":
+                default_view_fields.append(field_name)
+    
+    views.append({
+        "name": "All Items",
+        "display_name": f"All {list_title}",
+        "url": "AllItems.aspx",
+        "default": "TRUE",
+        "fields": default_view_fields,
+        "row_limit": 30
+    })
+    
+    # Create status-based view if there's a status/choice field
+    status_fields = [f for f in fields_to_add if f in field_map and 
+                    field_map[f].get("type") == "Choice" and 
+                    any(keyword in f.lower() for keyword in ["status", "state", "stage", "phase"])]
+    
+    if status_fields:
+        status_field = status_fields[0]
+        status_view_fields = base_fields + [status_field]
+        
+        # Add other relevant fields
+        for field_name in fields_to_add:
+            if (field_name != status_field and len(status_view_fields) < 8 and 
+                field_name in field_map and field_map[field_name].get("type") != "Note"):
+                status_view_fields.append(field_name)
+        
+        # Create CAML query for active/in-progress items
+        status_choices = field_map[status_field].get("choices", [])
+        active_statuses = [choice for choice in status_choices if 
+                          any(keyword in choice.lower() for keyword in ["active", "progress", "open", "pending", "review"])]
+        
+        if active_statuses:
+            query = f"""<Where>
+                          <Eq>
+                            <FieldRef Name="{status_field}"/>
+                            <Value Type="Choice">{active_statuses[0]}</Value>
+                          </Eq>
+                        </Where>"""
+            
+            views.append({
+                "name": "Active Items",
+                "display_name": f"Active {list_title}",
+                "url": "ActiveItems.aspx",
+                "default": "FALSE",
+                "fields": status_view_fields,
+                "query": query,
+                "row_limit": 30
+            })
+    
+    # Create priority-based view if there's a priority field
+    priority_fields = [f for f in fields_to_add if f in field_map and 
+                      "priority" in f.lower() and field_map[f].get("type") == "Choice"]
+    
+    if priority_fields:
+        priority_field = priority_fields[0]
+        priority_view_fields = base_fields + [priority_field]
+        
+        # Add other relevant fields
+        for field_name in fields_to_add:
+            if (field_name != priority_field and len(priority_view_fields) < 8 and 
+                field_name in field_map and field_map[field_name].get("type") != "Note"):
+                priority_view_fields.append(field_name)
+        
+        # Create CAML query for high priority items
+        priority_choices = field_map[priority_field].get("choices", [])
+        high_priorities = [choice for choice in priority_choices if 
+                          any(keyword in choice.lower() for keyword in ["high", "critical", "urgent"])]
+        
+        if high_priorities:
+            query = f"""<Where>
+                          <Eq>
+                            <FieldRef Name="{priority_field}"/>
+                            <Value Type="Choice">{high_priorities[0]}</Value>
+                          </Eq>
+                        </Where>
+                        <OrderBy>
+                          <FieldRef Name="Modified" Ascending="FALSE"/>
+                        </OrderBy>"""
+            
+            views.append({
+                "name": "High Priority",
+                "display_name": f"High Priority {list_title}",
+                "url": "HighPriority.aspx", 
+                "default": "FALSE",
+                "fields": priority_view_fields,
+                "query": query,
+                "row_limit": 30
+            })
+    
+    # Create date-based view if there are date fields
+    date_fields = [f for f in fields_to_add if f in field_map and 
+                  field_map[f].get("type") == "DateTime" and 
+                  any(keyword in f.lower() for keyword in ["due", "deadline", "expir", "end", "finish"])]
+    
+    if date_fields:
+        date_field = date_fields[0]
+        date_view_fields = base_fields + [date_field]
+        
+        # Add other relevant fields
+        for field_name in fields_to_add:
+            if (field_name != date_field and len(date_view_fields) < 8 and 
+                field_name in field_map and field_map[field_name].get("type") != "Note"):
+                date_view_fields.append(field_name)
+        
+        query = f"""<OrderBy>
+                      <FieldRef Name="{date_field}" Ascending="TRUE"/>
+                    </OrderBy>"""
+        
+        views.append({
+            "name": "By Due Date",
+            "display_name": f"{list_title} by Due Date",
+            "url": "ByDueDate.aspx",
+            "default": "FALSE", 
+            "fields": date_view_fields,
+            "query": query,
+            "row_limit": 30
+        })
+    
+    # Create category/type-based view if there's a category field
+    category_fields = [f for f in fields_to_add if f in field_map and 
+                      field_map[f].get("type") == "Choice" and 
+                      any(keyword in f.lower() for keyword in ["category", "type", "department", "group"])]
+    
+    if category_fields:
+        category_field = category_fields[0]
+        category_view_fields = base_fields + [category_field]
+        
+        # Add other relevant fields
+        for field_name in fields_to_add:
+            if (field_name != category_field and len(category_view_fields) < 8 and 
+                field_name in field_map and field_map[field_name].get("type") != "Note"):
+                category_view_fields.append(field_name)
+        
+        query = f"""<GroupBy Collapse="TRUE" GroupLimit="100">
+                      <FieldRef Name="{category_field}"/>
+                    </GroupBy>
+                    <OrderBy>
+                      <FieldRef Name="Modified" Ascending="FALSE"/>
+                    </OrderBy>"""
+        
+        views.append({
+            "name": "By Category",
+            "display_name": f"{list_title} by Category",
+            "url": "ByCategory.aspx",
+            "default": "FALSE",
+            "fields": category_view_fields,
+            "query": query,
+            "row_limit": 30
+        })
+    
+    # For document libraries, create a "Recent Documents" view
+    if list_type == 101:
+        recent_view_fields = ["DocIcon", "LinkFilename", "Modified", "Editor"]
+        
+        # Add first few custom fields
+        for field_name in fields_to_add[:4]:
+            if field_name in field_map and field_map[field_name].get("type") != "Note":
+                recent_view_fields.append(field_name)
+        
+        query = """<OrderBy>
+                     <FieldRef Name="Modified" Ascending="FALSE"/>
+                   </OrderBy>"""
+        
+        views.append({
+            "name": "Recent Documents",
+            "display_name": "Recently Modified",
+            "url": "Recent.aspx",
+            "default": "FALSE",
+            "fields": recent_view_fields,
+            "query": query,
+            "row_limit": 20
+        })
+    
+    return views
 
 def create_field_xml(field: Dict[str, Any]) -> str:
     """
@@ -683,6 +898,119 @@ def structure_to_pnp_xml(structure: Dict[str, Any]) -> str:
                             for choice in field_def["choices"]:
                                 choice_elem = ET.SubElement(choices_elem, "CHOICE")
                                 choice_elem.text = choice
+            
+            # Add Views following Microsoft pattern
+            views_elem = ET.SubElement(list_instance, "pnp:Views")
+            views_elem.set("RemoveExistingViews", "false")
+            
+            # Use views from JSON if provided, otherwise generate intelligent views
+            if list_def.get("views"):
+                # Create field name mapping to handle "Custom" prefixed fields
+                builtin_fields = {
+                    'location', 'title', 'description', 'author', 'editor', 'created', 'modified',
+                    'id', 'version', 'name', 'url', 'path', 'type', 'size', 'status', 'category',
+                    'comments', 'tags', 'keywords', 'subject', 'company', 'manager', 'department',
+                    'priority', 'assignedto', 'duedate', 'startdate', 'percentcomplete', 'outcome',
+                    'contenttype', 'attachments', 'linkfilename', 'docicon', 'edit', 'folder',
+                    'order', 'guid', 'fileleafref', 'fileref', 'filepath', 'filesizebytes',
+                    'checkedoutto', 'owner', 'workflow', 'importance', 'sensitivity'
+                }
+                
+                def map_field_name(field_name):
+                    """Map JSON field names to actual generated field names"""
+                    # Don't map standard SharePoint fields like Title, Modified, Created, etc.
+                    standard_fields = {'title', 'modified', 'created', 'author', 'editor', 'id', 'linktitle', 'docicon', 'linkfilename'}
+                    if field_name.lower() in standard_fields:
+                        return field_name
+                    if field_name.lower() in builtin_fields:
+                        return f"Custom{field_name}"
+                    return field_name
+                
+                # Use views specified in the JSON structure
+                views_to_create = []
+                for view_json in list_def["views"]:
+                    # Map field names in view fields
+                    mapped_fields = [map_field_name(f) for f in view_json.get("fields", ["LinkTitle", "Modified"])]
+                    
+                    # Map field names in CAML query
+                    query = view_json.get("query", "")
+                    for site_field in structure.get("site_fields", []):
+                        original_name = site_field["name"]
+                        if original_name.startswith("Custom"):
+                            # Find the original name without Custom prefix
+                            base_name = original_name[6:]  # Remove "Custom" prefix
+                            if base_name.lower() in builtin_fields:
+                                query = query.replace(f"Name='{base_name}'", f"Name='{original_name}'")
+                                query = query.replace(f"Name=\"{base_name}\"", f"Name=\"{original_name}\"")
+                    
+                    view_dict = {
+                        "name": view_json.get("name", "View"),
+                        "display_name": view_json.get("display_name", view_json.get("name", "View")),
+                        "url": f"{view_json.get('name', 'View').replace(' ', '')}.aspx",
+                        "default": "TRUE" if view_json.get("default", False) else "FALSE",
+                        "fields": mapped_fields,
+                        "query": query,
+                        "row_limit": view_json.get("row_limit", 30),
+                        "type": view_json.get("type", "HTML"),
+                        "paged": view_json.get("paged", True)
+                    }
+                    views_to_create.append(view_dict)
+            else:
+                # Generate appropriate views based on list type and fields
+                views_to_create = generate_list_views(list_def, structure.get("site_fields", []))
+            
+            for view_def in views_to_create:
+                view_elem = ET.SubElement(views_elem, "View")
+                view_elem.set("Name", view_def["name"])
+                view_elem.set("DefaultView", view_def.get("default", "FALSE"))
+                view_elem.set("MobileView", "FALSE")
+                view_elem.set("MobileDefaultView", "FALSE")
+                view_elem.set("Type", view_def.get("type", "HTML"))
+                view_elem.set("DisplayName", view_def["display_name"])
+                view_elem.set("Url", view_def.get("url", f"{view_def['name'].replace(' ', '')}.aspx"))
+                view_elem.set("Level", "1")
+                view_elem.set("BaseViewID", "1")
+                view_elem.set("ContentTypeID", "0x")
+                if list_def["template_type"] == 101:  # Document Library
+                    view_elem.set("ImageUrl", "/_layouts/15/images/dlicon.png")
+                
+                # Add Query if filter/sort is specified
+                if view_def.get("query"):
+                    query_elem = ET.SubElement(view_elem, "Query")
+                    # Parse the CAML query XML and append as child elements
+                    try:
+                        # Wrap the query in a temporary root element for parsing
+                        temp_query = f"<TempRoot>{view_def['query']}</TempRoot>"
+                        temp_root = ET.fromstring(temp_query)
+                        # Add all child elements of the temp root to the actual Query element
+                        for child in temp_root:
+                            query_elem.append(child)
+                    except ET.ParseError:
+                        # Fallback: if parsing fails, treat as text (should not happen with proper CAML)
+                        query_elem.text = view_def["query"]
+                
+                # Add ViewFields
+                viewfields_elem = ET.SubElement(view_elem, "ViewFields")
+                for field_name in view_def["fields"]:
+                    fieldref_elem = ET.SubElement(viewfields_elem, "FieldRef")
+                    fieldref_elem.set("Name", field_name)
+                
+                # Add RowLimit
+                rowlimit_elem = ET.SubElement(view_elem, "RowLimit")
+                paged_setting = "TRUE" if view_def.get("paged", True) else "FALSE"
+                rowlimit_elem.set("Paged", paged_setting)
+                rowlimit_elem.text = str(view_def.get("row_limit", 30))
+                
+                # Add standard elements
+                jslink_elem = ET.SubElement(view_elem, "JSLink")
+                jslink_elem.text = "clienttemplates.js"
+                
+                xsllink_elem = ET.SubElement(view_elem, "XslLink")
+                xsllink_elem.set("Default", "TRUE")
+                xsllink_elem.text = "main.xsl"
+                
+                toolbar_elem = ET.SubElement(view_elem, "Toolbar")
+                toolbar_elem.set("Type", "Standard")
     
     # Add Navigation (following official template pattern)
     if structure.get("navigation"):
