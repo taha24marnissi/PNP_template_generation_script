@@ -22,6 +22,7 @@ python-dotenv>=1.0.0   # Configuration management
 - **List Structures**: Document Libraries and Custom Lists with proper versioning
 - **Enterprise Navigation**: Multi-level navigation with proper structure
 - **Custom Views**: AI-generated views with complex CAML queries for filtering, sorting, and grouping
+- **Intelligent Theming**: AI-generated custom themes based on context (corporate blue, healthcare teal, emergency red, etc.)
 
 ### 🎯 **View Generation**
 - **Multiple View Types**: HTML, CALENDAR views supported
@@ -79,9 +80,21 @@ python generate_template.py "Create a project management site with document libr
 python generate_template.py "Create an event management site with an events list having Title, EventDate, Category, Priority fields. Create calendar view for EventDate field and high priority events view."
 ```
 
+### **Themed Corporate Sites**
+```bash
+# Corporate finance site with blue branding
+python generate_template.py "Create a corporate communication site with blue branding for our finance department. Include a policy documents library and announcements list."
+
+# Healthcare site with teal branding  
+python generate_template.py "Create a healthcare communication site with teal branding for our medical department. Include a patient information library and medical announcements."
+
+# Emergency response with red branding
+python generate_template.py "Create an emergency response team site with red branding. Include an incident reports library and emergency contacts list."
+```
+
 ### **Enterprise Knowledge Management**
 ```bash
-python generate_template.py "Create an enterprise knowledge management communication site with: policy documents library, training materials library, company updates list, FAQ management list."
+python generate_template.py "Create an enterprise knowledge management communication site with: policy documents library, training materials library, company updates list, FAQ management list with the necessary fields and views."
 ```
 
 ## 🔍 View Generation
@@ -116,6 +129,45 @@ python generate_template.py "Create an enterprise knowledge management communica
     <FieldRef Name="DueDate" Ascending="TRUE"/>
   </OrderBy>
 </Query>
+```
+
+## 🎨 Theme Generation
+
+### **Intelligent Theme Detection**
+- **Context-Aware Theming**: AI analyzes site description to suggest appropriate themes
+- **Industry-Specific Colors**: Automatic color selection based on department/industry
+- **Full Palette Generation**: Complete SharePoint theme palette from primary color
+
+### **Supported Theme Types**
+- **Corporate Blue** (#0078d4): Finance, business, corporate sites
+- **Healthcare Teal** (#008080): Medical, healthcare, wellness sites  
+- **Emergency Red** (#d13438): Safety, emergency response, critical systems
+- **Education Purple** (#5c2d91): Training, academic, learning sites
+- **Environmental Green** (#498205): Sustainability, environmental sites
+
+### **Theme Features**
+- **Tenant-Level Themes**: Themes deployed at organization level for reuse
+- **Site-Level Application**: Individual sites reference and apply themes
+- **Fluent UI Compliance**: Generated palettes follow Microsoft design standards
+- **Complete Provisioning**: Both theme definition and application in one template
+
+### **Example Generated Theme JSON**
+```json
+{
+  "themePrimary": "#d13438",
+  "themeLighterAlt": "#fcf4f5", 
+  "themeLighter": "#f1c2c3",
+  "themeLight": "#e38587",
+  "themeTertiary": "#da5c5f",
+  "themeSecondary": "#d5484b",
+  "themeDarkAlt": "#bc2e32",
+  "themeDark": "#9c272a",
+  "themeDarker": "#7d1f21",
+  "neutralLighter": "#f3f2f1",
+  "neutralLight": "#edebe9",
+  "neutralTertiary": "#a19f9d",
+  "neutralPrimary": "#323130"
+}
 ```
 
 ## 📊 Supported Field Types
@@ -176,22 +228,27 @@ The included `invoke-template.ps1` script provides automated SharePoint deployme
 ✅ **Tested with SharePoint Online**  
 ✅ **Complex templates with 25+ fields**  
 ✅ **CAML queries and calendar views working**  
+✅ **Custom themes with full palette generation**  
 ✅ **Enterprise-scale deployments successful**
 
 ## 🔧 Technical Architecture
 
 ### **AI Processing Pipeline**
 1. **Natural Language Input** → GPT-4 Analysis
-2. **Structure Generation** → JSON Schema with Views
-3. **Field & View Processing** → Automatic conflict resolution and CAML generation
-4. **XML Generation** → PnP Template Building
-5. **Validation** → XSD Schema Validation
+2. **Structure Generation** → JSON Schema with Views and Themes
+3. **Theme Processing** → Context-aware color selection and palette generation
+4. **Field & View Processing** → Automatic conflict resolution and CAML generation
+5. **XML Generation** → PnP Template Building with Tenant + Site theming
+6. **Validation** → XSD Schema Validation
 
 ### **Key Innovations**
 - **AI-Powered View Creation**: LLM generates appropriate views based on context
 - **CAML Query Intelligence**: Complex filtering, sorting, and grouping logic
 - **Field Name Resolution**: Automatic mapping and conflict resolution
 - **XML Parsing Engine**: Proper CAML XML formatting (no HTML encoding)
+- **Context-Aware Theming**: AI selects colors based on industry/department context
+- **Full Palette Generation**: Complete SharePoint theme from single primary color
+- **Dual-Level Theme Support**: Both tenant-wide and site-specific theme deployment
 
 ## � Prompt Engineering Guide
 
@@ -209,6 +266,13 @@ The included `invoke-template.ps1` script provides automated SharePoint deployme
 - Use Choice fields for filtering (Status, Priority, Category)
 - Use Date fields for calendar views
 - Use Person fields for "My Items" views
+
+### **Theme Keywords**
+- **Corporate/Finance**: Mention "corporate", "blue branding", "finance" for blue themes
+- **Healthcare/Medical**: Include "healthcare", "medical", "teal branding" for teal themes
+- **Emergency/Safety**: Use "emergency", "safety", "red branding" for red themes
+- **Education/Training**: Reference "education", "training", "purple branding" for purple themes
+- **Environmental**: Include "environmental", "sustainability", "green branding" for green themes
 
 ## �📋 Requirements
 

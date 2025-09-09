@@ -146,6 +146,40 @@ def save_comprehensive_report(json_content: str, xml_filename: str, is_valid: bo
     
     return filename
 
+def clean_json_comments(json_str: str) -> str:
+    """
+    Remove JavaScript-style comments from JSON string to make it valid JSON.
+    Handles both // line comments and /* block comments */
+    """
+    import re
+    
+    # Remove single-line comments (// comment)
+    # But be careful not to remove // inside quoted strings
+    lines = json_str.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        # Find // that's not inside a quoted string
+        in_quotes = False
+        i = 0
+        while i < len(line):
+            if line[i] == '"' and (i == 0 or line[i-1] != '\\'):
+                in_quotes = not in_quotes
+            elif not in_quotes and i < len(line) - 1 and line[i:i+2] == '//':
+                # Found a comment, truncate the line here
+                line = line[:i].rstrip()
+                break
+            i += 1
+        cleaned_lines.append(line)
+    
+    # Rejoin lines
+    cleaned_json = '\n'.join(cleaned_lines)
+    
+    # Remove block comments /* ... */
+    cleaned_json = re.sub(r'/\*.*?\*/', '', cleaned_json, flags=re.DOTALL)
+    
+    return cleaned_json
+
 def llm_generate_structure(description: str) -> Dict[str, Any]:
     """
     Use OpenAI ChatGPT to generate a proper JSON structure for SharePoint site requirements.
@@ -184,6 +218,7 @@ Analyze the description carefully and extract:
 5. Relevant site columns/fields
 6. Content types that group related fields
 7. Navigation structure
+8. Theme/branding requirements (colors, corporate identity)
 
 Return ONLY a valid JSON object with this exact structure:
 
@@ -192,6 +227,12 @@ Return ONLY a valid JSON object with this exact structure:
     "base_template": "GROUP#0" for modern TeamSite or "SITEPAGEPUBLISHING#0" for CommunicationSite,
     "site_title": "Meaningful title extracted from description - be specific",
     "description": "Brief description of the site purpose",
+    "theme": {{
+        "name": "CustomTheme",
+        "primary_color": "#0078d4", // main brand color (blue for corporate, green for environmental, red for emergency, etc.)
+        "is_inverted": false, // true for dark themes
+        "generate_palette": true // if true, auto-generate full color palette from primary_color
+    }},
     "site_fields": [
         {{
             "name": "FieldName",
@@ -271,6 +312,11 @@ SharePoint Best Practice Rules:
     - Use exact field internal names from site_fields in queries
     - Match field types correctly (Choice, DateTime, Text, etc.)
     - Use proper CAML syntax for filtering and sorting
+17. Theme Guidelines:
+    - Choose primary_color based on context: corporate (blue #0078d4), healthcare (teal #008a8a), finance (green #498205), emergency/safety (red #d13438), education (purple #5c2d91)
+    - Use generate_palette: true to auto-create full theme from primary color
+    - Set is_inverted: false for light themes (most common), true for dark themes
+    - Theme name should be descriptive (e.g., "CorporateBlue", "HealthcareGreen", "EmergencyRed")
 
 Content Type Design Guidelines:
 - For documents: inherit from "Document" (0x0101)
@@ -317,6 +363,9 @@ Examples of good parsing:
             response_text = response_text.split("```json")[1].split("```")[0].strip()
         elif "```" in response_text:
             response_text = response_text.split("```")[1].split("```")[0].strip()
+        
+        # Clean JSON: Remove JavaScript-style comments that break JSON parsing
+        response_text = clean_json_comments(response_text)
         
         # Display the cleaned JSON response from LLM
         print("📋 LLM JSON Response:")
@@ -488,6 +537,212 @@ def fallback_generate_structure(description: str) -> Dict[str, Any]:
     
     json_content = json.dumps(structure, indent=2)
     return structure, json_content
+
+def generate_theme_palette(primary_color: str) -> Dict[str, str]:
+    """
+    Generate a complete SharePoint theme palette from a primary color.
+    Based on Microsoft's Fluent UI theme generation patterns.
+    """
+    # Remove # if present
+    hex_color = primary_color.lstrip('#')
+    
+    # Convert hex to RGB
+    try:
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+    except ValueError:
+        # Fallback to default blue if invalid color
+        r, g, b = 0, 120, 212
+    
+    def adjust_brightness(r, g, b, factor):
+        """Adjust RGB brightness by factor (0.0 = black, 1.0 = original, 2.0 = white)"""
+        if factor > 1.0:
+            # Lighten
+            factor = factor - 1.0
+            r = int(r + (255 - r) * factor)
+            g = int(g + (255 - g) * factor)
+            b = int(b + (255 - b) * factor)
+        else:
+            # Darken
+            r = int(r * factor)
+            g = int(g * factor)
+            b = int(b * factor)
+        
+        # Clamp values
+        r = max(0, min(255, r))
+        g = max(0, min(255, g))
+        b = max(0, min(255, b))
+        return f"#{r:02x}{g:02x}{b:02x}"
+    
+    # Generate SharePoint theme palette following Microsoft patterns
+    theme_palette = {
+        "themePrimary": f"#{r:02x}{g:02x}{b:02x}",
+        "themeLighterAlt": adjust_brightness(r, g, b, 1.95),
+        "themeLighter": adjust_brightness(r, g, b, 1.7),
+        "themeLight": adjust_brightness(r, g, b, 1.4),
+        "themeTertiary": adjust_brightness(r, g, b, 1.2),
+        "themeSecondary": adjust_brightness(r, g, b, 1.1),
+        "themeDarkAlt": adjust_brightness(r, g, b, 0.9),
+        "themeDark": adjust_brightness(r, g, b, 0.75),
+        "themeDarker": adjust_brightness(r, g, b, 0.6),
+        # Neutral colors (standard SharePoint grays)
+        "neutralLighterAlt": "#faf9f8",
+        "neutralLighter": "#f3f2f1", 
+        "neutralLight": "#edebe9",
+        "neutralQuaternaryAlt": "#e1dfdd",
+        "neutralQuaternary": "#d0d0d0",
+        "neutralTertiaryAlt": "#c8c6c4",
+        "neutralTertiary": "#a19f9d",
+        "neutralSecondary": "#605e5c",
+        "neutralPrimaryAlt": "#3b3a39",
+        "neutralPrimary": "#323130",
+        "neutralDark": "#201f1e",
+        # White and black
+        "white": "#ffffff",
+        "black": "#000000"
+    }
+    
+    return theme_palette
+
+def create_tenant_themes_xml(themes: List[Dict[str, Any]]) -> ET.Element:
+    """
+    Create the tenant-level themes XML section following the PnP schema.
+    """
+    tenant = ET.Element("pnp:Tenant")
+    themes_element = ET.SubElement(tenant, "pnp:Themes")
+    
+    for theme_config in themes:
+        theme = ET.SubElement(themes_element, "pnp:Theme")
+        theme.set("Name", theme_config.get("name", "CustomTheme"))
+        theme.set("IsInverted", str(theme_config.get("is_inverted", False)).lower())
+        theme.set("Overwrite", "true")
+        
+        # Generate or use provided palette
+        if theme_config.get("generate_palette", True) and theme_config.get("primary_color"):
+            palette = generate_theme_palette(theme_config["primary_color"])
+        else:
+            # Use default palette if no primary color
+            palette = generate_theme_palette("#0078d4")
+        
+        # Create JSON string for theme palette
+        theme_json = json.dumps(palette, indent=2)
+        theme.text = theme_json
+    
+    return tenant
+
+def get_relevant_fields_for_list(list_def: Dict[str, Any], site_fields: List[Dict[str, Any]]) -> List[str]:
+    """
+    Intelligently determine which site fields are relevant for a specific list.
+    """
+    list_title = list_def.get("title", "").lower()
+    list_type = list_def.get("template_type", 100)
+    
+    relevant_fields = []
+    
+    for field in site_fields:
+        field_name = field["name"]
+        field_display = field["displayName"].lower()
+        
+        # Always add approval status if it exists
+        if "approval" in field_display:
+            relevant_fields.append(field_name)
+            continue
+            
+        # Priority fields are relevant for most lists
+        if "priority" in field_display:
+            relevant_fields.append(field_name)
+            continue
+            
+        # Assignee fields relevant for tasks and general lists
+        if "assignee" in field_display and list_type != 106:  # Not for calendars
+            relevant_fields.append(field_name)
+            continue
+            
+        # Due date fields relevant for tasks and documents
+        if "due" in field_display and list_type in [100, 101, 107]:  # Lists, libraries, tasks
+            relevant_fields.append(field_name)
+            continue
+            
+        # Department/category fields relevant for contacts and general lists
+        if any(word in field_display for word in ["department", "category", "type"]) and list_type in [100, 105]:
+            relevant_fields.append(field_name)
+            continue
+    
+    return relevant_fields
+
+def validate_field_reference(field_name: str, list_def: Dict[str, Any], site_fields: List[Dict[str, Any]]) -> str:
+    """
+    Validate and correct field references for SharePoint lists.
+    Returns the corrected field name or None if the field is invalid.
+    """
+    list_type = list_def.get("template_type", 100)
+    
+    # Create field name mapping for custom fields (including name changes)
+    custom_field_names = {f["name"] for f in site_fields}
+    fields_in_list = set(list_def.get("fields", []))
+    
+    # Check for field name transformations (e.g., Priority -> CustomPriority)
+    builtin_fields = {
+        'location', 'title', 'description', 'author', 'editor', 'created', 'modified',
+        'id', 'version', 'name', 'url', 'path', 'type', 'size', 'status', 'category',
+        'comments', 'tags', 'keywords', 'subject', 'company', 'manager', 'department',
+        'priority', 'assignedto', 'duedate', 'startdate', 'percentcomplete', 'outcome',
+        'contenttype', 'attachments', 'linkfilename', 'docicon', 'edit', 'folder',
+        'order', 'guid', 'fileleafref', 'fileref', 'filepath', 'filesizebytes',
+        'checkedoutto', 'owner', 'workflow', 'importance', 'sensitivity'
+    }
+    
+    # If field name was transformed due to conflict, check for the "Custom" version
+    if field_name.lower() in builtin_fields:
+        custom_version = f"Custom{field_name}"
+        if custom_version in custom_field_names:
+            return custom_version
+    
+    # If it's a custom field that exists in this list, return as-is
+    if field_name in custom_field_names and field_name in fields_in_list:
+        return field_name
+    
+    # Standard SharePoint fields that are always available
+    standard_fields = {
+        "Title", "ID", "Modified", "Created", "Author", "Editor",
+        "LinkTitle", "DocIcon", "LinkFilename", "_UIVersionString"
+    }
+    
+    # List-specific standard fields
+    if list_type == 101:  # Document Library
+        standard_fields.update({"FileRef", "FileSizeDisplay", "FileLeafRef"})
+    elif list_type == 106:  # Events/Calendar
+        standard_fields.update({
+            "EventDate", "EndDate", "Location", "Description", 
+            "Category", "fAllDayEvent", "fRecurrence"
+        })
+    elif list_type == 105:  # Contacts
+        standard_fields.update({
+            "FirstName", "Title", "Company", "WorkPhone", "Email",
+            "WorkAddress", "WorkCity", "WorkState", "WorkZip"
+        })
+    
+    # Check if it's a standard field
+    if field_name in standard_fields:
+        return field_name
+    
+    # Handle common field name corrections for calendar lists
+    if list_type == 106:  # Events/Calendar
+        field_corrections = {
+            "CustomLocation": "Location",
+            "CustomTitle": "Title",
+            "CustomDescription": "Description",
+            "StartDate": "EventDate",
+            "Start": "EventDate",
+            "End": "EndDate"
+        }
+        if field_name in field_corrections:
+            return field_corrections[field_name]
+    
+    # If field doesn't exist and can't be corrected, return None
+    print(f"⚠️  Warning: Field '{field_name}' not found in list '{list_def.get('title', 'Unknown')}', skipping...")
+    return None
 
 def generate_list_views(list_def: Dict[str, Any], site_fields: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -758,6 +1013,26 @@ def structure_to_pnp_xml(structure: Dict[str, Any]) -> str:
     root.set("Description", structure.get("description", "SharePoint provisioning template"))
     root.set("DisplayName", structure.get("site_title", "SharePoint Site Template"))
     
+    # Add tenant-level themes if theme is specified
+    theme_config = structure.get("theme")
+    if theme_config:
+        tenant = ET.SubElement(root, "pnp:Tenant")
+        themes_element = ET.SubElement(tenant, "pnp:Themes")
+        
+        theme = ET.SubElement(themes_element, "pnp:Theme")
+        theme.set("Name", theme_config.get("name", "CustomTheme"))
+        theme.set("IsInverted", str(theme_config.get("is_inverted", False)).lower())
+        theme.set("Overwrite", "true")
+        
+        # Generate theme palette
+        if theme_config.get("generate_palette", True) and theme_config.get("primary_color"):
+            palette = generate_theme_palette(theme_config["primary_color"])
+        else:
+            palette = generate_theme_palette("#0078d4")
+        
+        # Set theme JSON as text content
+        theme.text = json.dumps(palette, indent=8)
+    
     # Add Templates container with meaningful ID
     templates = ET.SubElement(root, "pnp:Templates")
     templates.set("ID", "MAIN-TEMPLATES")
@@ -778,6 +1053,8 @@ def structure_to_pnp_xml(structure: Dict[str, Any]) -> str:
     template.set("Scope", "RootSite")
     template.set("DisplayName", structure.get("site_title", "SharePoint Site Template"))
     template.set("Description", structure.get("description", "Microsoft-style SharePoint provisioning template"))
+    
+    # Note: Theme is defined at tenant level and applied during site collection creation
     
     # Add WebSettings with comprehensive Microsoft-style configuration
     web_settings = ET.SubElement(template, "pnp:WebSettings")
@@ -846,11 +1123,24 @@ def structure_to_pnp_xml(structure: Dict[str, Any]) -> str:
             list_instance.set("RemoveExistingContentTypes", "false")
             
             # Add list-specific fields using Microsoft pattern (inside the list, not as site fields)
-            # If list has no fields specified, add all site fields to the list
+            # If list has no fields specified or empty array, only add relevant fields based on context
             fields_to_add = list_def.get("fields", [])
             if not fields_to_add and structure.get("site_fields"):
-                # Auto-add all site fields to lists that have no fields specified
-                fields_to_add = [f["name"] for f in structure.get("site_fields", [])]
+                # Intelligently assign fields based on list type and field relevance
+                fields_to_add = get_relevant_fields_for_list(list_def, structure.get("site_fields", []))
+            
+            # Also add fields referenced in custom views for this list
+            if list_def.get("views"):
+                for view in list_def["views"]:
+                    for field_name in view.get("fields", []):
+                        # Try to map field names correctly
+                        validated_field = validate_field_reference(field_name, list_def, structure.get("site_fields", []))
+                        if validated_field and validated_field not in fields_to_add:
+                            # Check if this is a custom field that should be added
+                            for site_field in structure.get("site_fields", []):
+                                if site_field["name"] == validated_field:
+                                    fields_to_add.append(validated_field)
+                                    break
             
             if fields_to_add:
                 fields_elem = ET.SubElement(list_instance, "pnp:Fields")
@@ -989,11 +1279,14 @@ def structure_to_pnp_xml(structure: Dict[str, Any]) -> str:
                         # Fallback: if parsing fails, treat as text (should not happen with proper CAML)
                         query_elem.text = view_def["query"]
                 
-                # Add ViewFields
+                # Add ViewFields with validation
                 viewfields_elem = ET.SubElement(view_elem, "ViewFields")
                 for field_name in view_def["fields"]:
-                    fieldref_elem = ET.SubElement(viewfields_elem, "FieldRef")
-                    fieldref_elem.set("Name", field_name)
+                    # Validate field references for calendar lists
+                    validated_field_name = validate_field_reference(field_name, list_def, structure.get("site_fields", []))
+                    if validated_field_name:  # Only add valid field references
+                        fieldref_elem = ET.SubElement(viewfields_elem, "FieldRef")
+                        fieldref_elem.set("Name", validated_field_name)
                 
                 # Add RowLimit
                 rowlimit_elem = ET.SubElement(view_elem, "RowLimit")
@@ -1044,6 +1337,39 @@ def structure_to_pnp_xml(structure: Dict[str, Any]) -> str:
             # Escape XML special characters in URL
             url = url.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&apos;")
             nav_node.set("Url", url)
+    
+    # Add sequence section if theme is specified (shows how to apply theme during deployment)
+    if theme_config:
+        sequence = ET.SubElement(root, "pnp:Sequence")
+        sequence.set("ID", "SITE-SEQUENCE")
+        
+        site_collections = ET.SubElement(sequence, "pnp:SiteCollections")
+        
+        # Example site collection with theme applied
+        site_collection = ET.SubElement(site_collections, "pnp:SiteCollection")
+        site_collection.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+        
+        # Set the appropriate site collection type based on site_type
+        if site_type.lower() == "communication":
+            site_collection.set("xsi:type", "pnp:CommunicationSite")
+            site_collection.set("Url", "https://[tenant].sharepoint.com/sites/[sitename]")
+            site_collection.set("Owner", "[owner@tenant.onmicrosoft.com]")
+        else:
+            site_collection.set("xsi:type", "pnp:TeamSite")
+            site_collection.set("Alias", "[sitealias]")
+            site_collection.set("DisplayName", structure.get("site_title", "SharePoint Site"))
+            site_collection.set("IsPublic", "false")
+        
+        site_collection.set("ProvisioningId", "MAIN-SITE")
+        site_collection.set("Title", structure.get("site_title", "SharePoint Site"))
+        site_collection.set("Description", structure.get("description", ""))
+        site_collection.set("Theme", theme_config.get("name", "CustomTheme"))
+        site_collection.set("Language", "1033")
+        
+        # Reference the template
+        templates_ref = ET.SubElement(site_collection, "pnp:Templates")
+        template_ref = ET.SubElement(templates_ref, "pnp:ProvisioningTemplateReference")
+        template_ref.set("ID", "SITE-TEMPLATE")
     
     # Convert to string with proper formatting
     rough_string = ET.tostring(root, encoding='unicode')
